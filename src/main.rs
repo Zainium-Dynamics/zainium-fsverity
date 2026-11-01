@@ -5,13 +5,13 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use fs_verity::{
-    new_dyn_with_salt_and_block_size, InnerHashAlgorithm, VerityConfig, DEFAULT_BLOCK_SIZE,
+    DEFAULT_BLOCK_SIZE, InnerHashAlgorithm, VerityConfig, new_dyn_with_salt_and_block_size,
 };
 
 #[cfg(target_os = "linux")]
 use fs_verity::linux::{
-    fsverity_enable_config, fsverity_is_enabled, fsverity_measure, fsverity_read_metadata,
-    MetadataType,
+    MetadataType, fsverity_enable_config, fsverity_is_enabled, fsverity_measure,
+    fsverity_read_metadata,
 };
 
 fn print_usage(prog: &str) {
@@ -41,10 +41,16 @@ fn parse_config_flags(args: &[String]) -> io::Result<VerityConfig> {
             "--block-size" => {
                 i += 1;
                 let val = args.get(i).ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::InvalidInput, "missing value for --block-size")
+                    io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "missing value for --block-size",
+                    )
                 })?;
                 cfg.block_size = val.parse::<usize>().map_err(|e| {
-                    io::Error::new(io::ErrorKind::InvalidInput, format!("invalid block size: {e}"))
+                    io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        format!("invalid block size: {e}"),
+                    )
                 })?;
             }
             "--salt" => {
@@ -53,7 +59,10 @@ fn parse_config_flags(args: &[String]) -> io::Result<VerityConfig> {
                     io::Error::new(io::ErrorKind::InvalidInput, "missing value for --salt")
                 })?;
                 cfg.salt = hex::decode(val).map_err(|e| {
-                    io::Error::new(io::ErrorKind::InvalidInput, format!("invalid hex salt: {e}"))
+                    io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        format!("invalid hex salt: {e}"),
+                    )
                 })?;
             }
             "--sig" | "--signature" => {
@@ -78,11 +87,8 @@ fn parse_config_flags(args: &[String]) -> io::Result<VerityConfig> {
 
 fn compute_file_digest(path: &str, cfg: &VerityConfig) -> io::Result<()> {
     let mut f = BufReader::with_capacity(64 * 1024, File::open(path)?);
-    let mut hasher = new_dyn_with_salt_and_block_size(
-        cfg.algorithm,
-        cfg.salt.clone(),
-        cfg.block_size,
-    );
+    let mut hasher =
+        new_dyn_with_salt_and_block_size(cfg.algorithm, cfg.salt.clone(), cfg.block_size);
     io::copy(&mut f, &mut hasher)?;
     let algo = hasher.inner_hash_algorithm();
     let digest = hasher.finalize();
@@ -128,7 +134,7 @@ fn run() -> io::Result<()> {
             let cfg = parse_config_flags(&args[3..])?;
             let file = File::open(&args[2])?;
             fsverity_enable_config(file, &cfg)?;
-            println!("fs-verity enabled on {}", &args[2]);
+            println!("fs-verity enabled on {}", args[2]);
             Ok(())
         }
         #[cfg(target_os = "linux")]
@@ -141,7 +147,7 @@ fn run() -> io::Result<()> {
             }
             let file = File::open(&args[2])?;
             let (algo, digest) = fsverity_measure(file)?;
-            println!("{}:{} {}", algo, hex::encode(digest), &args[2]);
+            println!("{}:{} {}", algo, hex::encode(digest), args[2]);
             Ok(())
         }
         #[cfg(target_os = "linux")]
@@ -156,7 +162,7 @@ fn run() -> io::Result<()> {
             let enabled = fsverity_is_enabled(file)?;
             println!(
                 "{}: {}",
-                &args[2],
+                args[2],
                 if enabled { "enabled" } else { "disabled" }
             );
             Ok(())

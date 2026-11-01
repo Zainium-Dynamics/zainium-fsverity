@@ -137,7 +137,7 @@ pub trait InnerHash: Digest + BlockSizeUser + Clone + Default {
             self.update(&ZEROES[..remainder]);
         }
         for _ in 0..quotient {
-            self.update(&ZEROES);
+            self.update(ZEROES);
         }
     }
 }
@@ -302,9 +302,7 @@ where
 
     /// Consumes the streaming state and returns both the 256-byte `FsVerityDescriptor`
     /// and the final `fs-verity` measurement digest.
-    pub fn finalize_descriptor_and_digest(
-        mut self,
-    ) -> (FsVerityDescriptor, digest::Output<Self>) {
+    pub fn finalize_descriptor_and_digest(mut self) -> (FsVerityDescriptor, digest::Output<Self>) {
         let mut last_digest: digest::Output<Self> = Default::default();
         let mut overflow: &[u8] = &[];
         for mut level in self.levels.drain(..) {
@@ -504,12 +502,12 @@ pub fn new_dyn_with_salt_and_block_size<S: AsRef<[u8]> + Clone + Default + 'stat
     block_size: usize,
 ) -> Box<dyn DynFsVerityDigest> {
     match inner_hash {
-        InnerHashAlgorithm::Sha256 => {
-            Box::new(FsVeritySha256::new_with_salt_and_block_size(salt, block_size))
-        }
-        InnerHashAlgorithm::Sha512 => {
-            Box::new(FsVeritySha512::new_with_salt_and_block_size(salt, block_size))
-        }
+        InnerHashAlgorithm::Sha256 => Box::new(FsVeritySha256::new_with_salt_and_block_size(
+            salt, block_size,
+        )),
+        InnerHashAlgorithm::Sha512 => Box::new(FsVeritySha512::new_with_salt_and_block_size(
+            salt, block_size,
+        )),
     }
 }
 

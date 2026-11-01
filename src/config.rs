@@ -203,16 +203,17 @@ impl VerityConfig {
                 ),
             ));
         }
-        if let Some(sig) = &self.signature {
-            if sig.len() > MAX_SIGNATURE_SIZE {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!(
-                        "signature length ({}) exceeds MAX_SIGNATURE_SIZE ({MAX_SIGNATURE_SIZE})",
-                        sig.len()
-                    ),
-                ));
-            }
+
+        if let Some(sig) = &self.signature
+            && sig.len() > MAX_SIGNATURE_SIZE
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "signature length ({}) exceeds MAX_SIGNATURE_SIZE ({MAX_SIGNATURE_SIZE})",
+                    sig.len()
+                ),
+            ));
         }
         Ok(())
     }

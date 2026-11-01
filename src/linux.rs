@@ -134,7 +134,10 @@ pub fn fsverity_enable_with_sig(
             if sig.len() > config::MAX_SIGNATURE_SIZE {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    format!("signature length ({}) exceeds MAX_SIGNATURE_SIZE", sig.len()),
+                    format!(
+                        "signature length ({}) exceeds MAX_SIGNATURE_SIZE",
+                        sig.len()
+                    ),
                 ));
             }
             (sig.len() as u32, sig.as_ptr() as usize as u64)
