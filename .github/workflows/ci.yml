@@ -1,44 +1,44 @@
 name: CI
 
 on:
-push:
-branches: [ "master", "main" ]
-pull_request:
-branches: [ "master", "main" ]
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
 
 env:
-CARGO_TERM_COLOR: always
+  CARGO_TERM_COLOR: always
 
 jobs:
-verify:
-name: Build, Lint & Test (Linux musl/gnu)
-runs-on: ubuntu-latest
+  verify:
+    name: Build, Lint & Test (Linux)
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout Repository
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-  - name: Install Rust Toolchain
-    uses: dtolnay/rust-toolchain@stable
-    with:
-      components: rustfmt, clippy
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
-  - name: Set up Python 3
-    uses: actions/setup-python@v5
-    with:
-      python-version: '3.14'
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
 
-  - name: Check Formatting (cargo fmt)
-    run: cargo fmt -- --check
+      - name: Check Formatting (cargo fmt)
+        run: cargo fmt -- --check
 
-  - name: Run Linter (cargo clippy)
-    run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run Linter (cargo clippy)
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
-  - name: Quick Check (cargo check)
-    run: cargo check --all-targets --all-features
+      - name: Quick Check (cargo check)
+        run: cargo check --all-targets --all-features
 
-  - name: Generate Test Vectors (make_testfiles.py)
-    run: python3 make_testfiles.py
+      - name: Generate Test Vectors (make_testfiles.py)
+        run: python3 make_testfiles.py
 
-  - name: Run Release Tests (cargo test)
-    run: cargo test --release --all-features
+      - name: Run Release Tests (cargo test)
+        run: cargo test --release --all-features
