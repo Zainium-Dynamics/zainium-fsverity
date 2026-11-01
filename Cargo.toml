@@ -1,0 +1,34 @@
+[package]
+name = "zainium-fsverity"
+version = "0.3.0"
+authors = [
+    "Ali Zain <alizain@zainiumdynamics.tech>",
+    "Ronald Volgers <rvolgers@users.noreply.github.com>",
+]
+edition = "2024"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+readme = "README"
+repository = "https://github.com/Zainium-Dynamics/zainium-fsverity"
+documentation = "https://docs.rs/zainium-fsverity"
+description = "Modernized, musl/glibc ABI-safe Linux fs-verity Merkle tree calculator and kernel UAPI ioctl interface"
+categories = ["os::linux-apis", "algorithms", "cryptography", "filesystem"]
+keywords = ["fs-verity", "linux", "merkle-tree", "verity", "security"]
+exclude = [
+    "testfiles/*",
+    "make_testfiles.py",
+    ".github/*",
+]
+
+[lib]
+name = "fs_verity"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fs-verity"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2"
+hex = "0.4.3"
+sha2 = "0.10"

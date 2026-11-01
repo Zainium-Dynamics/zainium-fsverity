@@ -1,0 +1,137 @@
+ZAINIUM-FSVERITY
+================
+
+zainium-fsverity is a pure-Rust library and command-line utility for working
+with the Linux kernel's fs-verity subsystem. It provides a streaming user-space
+Merkle tree calculator alongside safe wrappers for the Linux kernel's
+<uapi/linux/fsverity.h> ioctl interfaces.
+
+
+WHAT IS FS-VERITY?
+------------------
+
+fs-verity is a Linux kernel filesystem feature (supported on ext4, f2fs, and
+btrfs) that makes files permanently read-only and attaches a cryptographic
+Merkle tree to the inode.
+
+Once enabled on a file:
+  1. The kernel verifies every page read from disk against the Merkle tree on
+     demand. Any tampered page fails with EIO before reaching user space.
+  2. Applications can retrieve the file's cryptographic measurement digest in
+     O(1) time via FS_IOC_MEASURE_VERITY without re-reading the file.
+
+
+WHAT THIS CRATE PROVIDES
+------------------------
+
+This crate acts as a pure-Rust, zero-bloat replacement for libfsverity and
+fsverity-utils, plus modern ABI compatibility enhancements:
+
+  * Streaming User-Space Digest Engine:
+    Implements the standard RustCrypto `Digest` and `std::io::Write` traits so
+    build servers, package managers, and CI pipelines can compute fs-verity
+    digests in chunks of any size without needing kernel or filesystem support.
+    Supports SHA-256 and SHA-512.
+
+  * Complete Linux Kernel UAPI ioctl Interface:
+    - `fsverity_enable` / `fsverity_enable_config` (`FS_IOC_ENABLE_VERITY`)
+    - `fsverity_measure` (`FS_IOC_MEASURE_VERITY`)
+    - `fsverity_read_metadata` (`FS_IOC_READ_VERITY_METADATA`, Linux 5.12+)
+    - `fsverity_is_enabled` (`FS_IOC_GETFLAGS` checking `FS_VERITY_FL`)
+
+  * Built-in Manual Viewer:
+    Includes an embedded roff renderer and fuzzy search (`fs-verity man`) that
+    runs without external man-db or groff shared libraries.
+
+
+KEY ARCHITECTURAL FIXES OVER UPSTREAM FS-VERITY (v0.2.0)
+--------------------------------------------------------
+
+1. Cross-Libc ioctl ABI Compatibility (glibc, musl, 32-bit, and 64-bit):
+   Defines `FS_IOC_ENABLE_VERITY` (0x40806685), `FS_IOC_MEASURE_VERITY`
+   (0xC0046686), `FS_IOC_READ_VERITY_METADATA` (0xC0286687), and
+   `FS_IOC_GETFLAGS` as 32-bit `_IOC` bitfields cast via `as libc::Ioctl`.
+   This resolves `error[E0308]: mismatched types (expected i32, found u64)` on
+   musl and 32-bit targets while avoiding runtime signed-integer overflow panics
+   on `_IOWR` command codes where bit 31 is set (`0xC0046686`).
+
+2. Fixed 128-Byte `struct fsverity_enable_arg` Kernel ABI Layout:
+   Upstream v0.2.0 declared `salt_ptr: *const [u8]` (a 16-byte Rust fat pointer
+   on 64-bit targets), inflating the struct to 136 bytes and overwriting
+   `sig_size` and `__reserved1` with `salt.len()`. Fixed to `salt_ptr: u64`
+   (`__u64` in `<uapi/linux/fsverity.h>`) with a compile-time size assertion
+   (`assert!(size_of::<fsverity_enable_arg>() == 128)`).
+
+3. Fixed `struct fsverity_descriptor` Salted Hashing:
+   Per Linux kernel `fs/verity/open.c` (`fsverity_hash_buffer`) and
+   `Documentation/filesystems/fsverity.rst`, the zero-padded salt is prepended
+   to every data and Merkle tree block, whereas the 256-byte
+   `fsverity_descriptor` (which already embeds `salt_size` and `salt[32]`) is
+   hashed directly without prepending the padded block salt.
+
+4. Zero Proc-Macro Bloat:
+   Removed `parse-display`, `num_enum`, and transitive `syn` / `regex-syntax`
+   dependencies while keeping 100% backwards compatibility with all upstream
+   types, traits, and function signatures.
+
+
+COMMAND-LINE USAGE
+------------------
+
+  # Compute a user-space fs-verity digest (SHA-256 or SHA-512)
+  fs-verity digest <FILE> [--alg sha256|sha512] [--block-size 4096] [--salt HEX]
+
+  # Enable fs-verity on a file via the Linux kernel ioctl
+  fs-verity enable <FILE> [--alg sha256] [--block-size 4096] [--salt HEX]
+
+  # Measure the active fs-verity digest from the kernel in O(1) time
+  fs-verity measure <FILE>
+
+  # Check whether the FS_VERITY_FL inode flag is set on a file
+  fs-verity status <FILE>
+
+  # Dump the raw 256-byte fsverity_descriptor from the kernel
+  fs-verity dump-descriptor <FILE>
+
+  # Open the built-in manual page or fuzzy-search a topic
+  fs-verity man
+  fs-verity man measure
+
+
+TESTING & DEVELOPMENT
+---------------------
+
+All official Linux kernel fs-verity test vectors and struct layout checks run
+directly in memory via Cargo:
+
+  cargo test --release
+
+If you also want to generate the on-disk test files (including the 200 MB
+multi-level `longfile`) to compare against the C `fsverity-utils` binary:
+
+  python3 make_testfiles.py
+  fsverity digest testfiles/*
+
+
+ORIGIN & CREDITS
+----------------
+
+This project is a modernized, ABI-fixed fork of `fs-verity-rs` originally created
+and written by **Ronald Volgers** (https://github.com/rvolgers/fs-verity-rs).
+Enhanced and maintained by Ali Zain and Zainium Dynamics for Zainium OS and
+modern Linux systems.
+
+
+LICENSE
+-------
+
+Licensed under either of:
+
+  * Apache License, Version 2.0 (LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
+  * MIT License (LICENSE-MIT or http://opensource.org/licenses/MIT)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
